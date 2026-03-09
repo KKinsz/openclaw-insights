@@ -45,6 +45,9 @@ import render as render_module
 # 缓存 data.json 内容，避免每次请求都读磁盘
 _cached_data = None
 
+# 启动时缓存系统语言，避免每次请求调用子进程
+_system_lang_cache: str = ""
+
 
 def build_summary_dict(data: dict) -> dict:
     """从 data.json 提取关键指标，与网页 Dashboard 展示内容保持一致。"""
@@ -102,20 +105,50 @@ def _get_data():
     return _cached_data
 
 
+def _init_system_lang():
+    global _system_lang_cache
+    _system_lang_cache = _detect_system_lang()
+
+
+def _detect_system_lang() -> str:
+    """检测系统语言，返回 'zh'、'en' 或 ''（未知）。
+    优先读取 macOS UI 语言，再回退到 LANG 环境变量。"""
+    if sys.platform == "darwin":
+        try:
+            import subprocess as _sp
+            out = _sp.check_output(
+                ["defaults", "read", "NSGlobalDomain", "AppleLanguages"],
+                stderr=_sp.DEVNULL, text=True, timeout=2,
+            )
+            first = next((t.strip().strip('"') for t in out.splitlines() if t.strip().strip('"').isalpha() is False and len(t.strip().strip('"')) >= 2), "")
+            if first.lower().startswith("zh"):
+                return "zh"
+            if first.lower().startswith("en"):
+                return "en"
+        except Exception:
+            pass
+    env_lang = os.environ.get("LANG", "")
+    if env_lang.lower().startswith("zh"):
+        return "zh"
+    if env_lang.lower().startswith("en"):
+        return "en"
+    return ""
+
+
 def detect_lang(handler):
-    """检测语言：1) URL ?lang= 参数；2) Accept-Language；3) 系统 LANG"""
+    """检测语言：1) URL ?lang= 参数；2) 系统语言（macOS UI / LANG）；3) Accept-Language"""
     qs = parse_qs(urlparse(handler.path).query)
     if "lang" in qs:
         return qs["lang"][0] if qs["lang"][0] in ("zh", "en") else "zh"
+    sys_lang = _system_lang_cache or _detect_system_lang()
+    if sys_lang:
+        return sys_lang
     accept_language = handler.headers.get("Accept-Language", "").lower()
     for token in [part.strip() for part in accept_language.split(",") if part.strip()]:
         if token.startswith("en"):
             return "en"
         if token.startswith("zh"):
             return "zh"
-    system_lang = os.environ.get("LANG", "")
-    if system_lang.lower().startswith("en"):
-        return "en"
     return "zh"
 
 
@@ -371,6 +404,7 @@ def _parse_args(argv=None):
 
 def main(argv=None):
     opts = _parse_args(argv)
+    _init_system_lang()
 
     # --summary / --json 一次性输出模式
     if opts.summary or opts.json_out:
