@@ -13,7 +13,7 @@ import tempfile
 import copy
 from datetime import datetime
 
-BASE = os.path.expanduser("~/.openclaw")
+BASE = os.environ.get("OPENCLAW_HOME", os.path.expanduser("~/.openclaw"))
 WORKSPACE = os.path.join(BASE, "workspace")
 AGENTS = ["main", "monitor", "note", "code", "image"]
 AGENT_FILES = ["SOUL", "USER", "IDENTITY", "AGENTS", "MEMORY", "HEARTBEAT", "TOOLS"]

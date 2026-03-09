@@ -33,12 +33,19 @@
 ## Quick Start
 
 ```bash
-git clone https://github.com/lukeindev/openclaw-insights.git
-cd openclaw-insights
+# Clone into your OpenClaw directory (recommended)
+git clone https://github.com/lukeindev/openclaw-insights.git ~/.openclaw/insights
+cd ~/.openclaw/insights
 python3 server.py
 ```
 
 The server starts at `http://localhost:18800` and auto-opens your browser. On first launch, session data is analyzed automatically — no additional setup needed.
+
+**Custom OpenClaw path:** If your OpenClaw is not at `~/.openclaw`, set the environment variable:
+
+```bash
+OPENCLAW_HOME=/your/openclaw/path python3 server.py
+```
 
 **Custom port:**
 

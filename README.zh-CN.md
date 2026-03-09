@@ -33,12 +33,19 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/lukeindev/openclaw-insights.git
-cd openclaw-insights
+# 推荐 clone 到 OpenClaw 目录下
+git clone https://github.com/lukeindev/openclaw-insights.git ~/.openclaw/insights
+cd ~/.openclaw/insights
 python3 server.py
 ```
 
 服务启动后会自动打开浏览器访问 `http://localhost:18800`。首次启动会自动分析 session 数据，无需额外配置。
+
+**自定义 OpenClaw 路径：** 如果你的 OpenClaw 不在 `~/.openclaw`，设置环境变量即可：
+
+```bash
+OPENCLAW_HOME=/your/openclaw/path python3 server.py
+```
 
 **自定义端口：**
 

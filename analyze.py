@@ -15,7 +15,7 @@ try:
 except ImportError:
     from backports.zoneinfo import ZoneInfo
 
-BASE = os.path.expanduser("~/.openclaw")
+BASE = os.environ.get("OPENCLAW_HOME", os.path.expanduser("~/.openclaw"))
 AGENTS = ["main", "monitor", "note", "code", "image", "claude", "codex", "gemini", "glm-5"]
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
 

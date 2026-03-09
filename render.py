@@ -1528,12 +1528,12 @@ function globalCardSummaryEl(cardKey) {{
 function resolveSkillDrawerPath(skills) {{
   const sources = new Set((skills || []).map(skill => skill.source).filter(Boolean));
   if (sources.has('openclaw-managed') && sources.has('openclaw-workspace')) {{
-    return '~/.openclaw/skills/*/SKILL.md · workspace/skills/*/SKILL.md';
+    return '$OPENCLAW_HOME/skills/*/SKILL.md · workspace/skills/*/SKILL.md';
   }}
   if (sources.has('openclaw-workspace')) {{
     return 'workspace/skills/*/SKILL.md';
   }}
-  return '~/.openclaw/skills/*/SKILL.md';
+  return '$OPENCLAW_HOME/skills/*/SKILL.md';
 }}
 
 async function loadCronCard() {{
