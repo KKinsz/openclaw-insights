@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated files
+data.json
+report.html
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Tests
+test_*.py
+
+# Development files
+mock-*.html
+docs/
