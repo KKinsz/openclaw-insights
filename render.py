@@ -986,7 +986,8 @@ def build_html(data, lang="zh"):
   body {{ background: #0f1117; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }}
   .gradient-text {{ background: linear-gradient(135deg, #3b82f6, #60a5fa, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }}
   .card-glow {{ box-shadow: 0 0 20px rgba(59,130,246,0.1); }}
-  .stat-card {{ background: linear-gradient(135deg, #0c1a3b22, #1e293b); }}
+  .stat-card {{ background: linear-gradient(135deg, #0c1a3b22, #1e293b); display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 5.5rem; }}
+  .stat-card .stat-value {{ font-size: 1.75rem; line-height: 2.25rem; font-weight: 700; white-space: nowrap; }}
 </style>
 </head>
 <body class="min-h-screen">
@@ -1034,27 +1035,27 @@ function switchTab(tab) {{
   <div>
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
       <div class="stat-card rounded-xl p-4 text-center border border-gray-700/50 card-glow">
-        <div class="text-3xl font-bold gradient-text">{glance.get("active_agent_count", len(glance.get("active_agents", [])))}</div>
+        <div class="stat-value gradient-text">{glance.get("active_agent_count", len(glance.get("active_agents", [])))}</div>
         <div class="text-gray-400 text-xs mt-1">{t["stat_active_agents"]}</div>
       </div>
       <div class="stat-card rounded-xl p-4 text-center border border-gray-700/50 card-glow">
-        <div class="text-2xl font-bold text-blue-400">{fmt_tokens(glance.get("total_tokens",0), lang)}</div>
+        <div class="stat-value text-blue-400">{fmt_tokens(glance.get("total_tokens",0), lang)}</div>
         <div class="text-gray-400 text-xs mt-1">{t["stat_tokens"]}</div>
       </div>
       <div class="stat-card rounded-xl p-4 text-center border border-gray-700/50 card-glow">
-        <div class="text-2xl font-bold text-cyan-400">{fmt_tokens(glance.get("daily_avg_tokens",0), lang)}</div>
+        <div class="stat-value text-cyan-400">{fmt_tokens(glance.get("daily_avg_tokens",0), lang)}</div>
         <div class="text-gray-400 text-xs mt-1">{t["stat_daily"]}</div>
       </div>
       <div class="stat-card rounded-xl p-4 text-center border border-gray-700/50 card-glow">
-        <div class="text-3xl font-bold text-blue-400">{glance.get("skills_count", data.get("skills", {}).get("total", 0))}</div>
+        <div class="stat-value text-blue-400">{glance.get("skills_count", data.get("skills", {}).get("total", 0))}</div>
         <div class="text-gray-400 text-xs mt-1">{t["stat_skills"]}</div>
       </div>
       <div class="stat-card rounded-xl p-4 text-center border border-gray-700/50">
-        <div class="text-3xl font-bold text-blue-400">{glance.get("cron_job_count", data.get("cron", {}).get("total_jobs", 0))}</div>
+        <div class="stat-value text-blue-400">{glance.get("cron_job_count", data.get("cron", {}).get("total_jobs", 0))}</div>
         <div class="text-gray-400 text-xs mt-1">{t["stat_cron_jobs"]}</div>
       </div>
       <div class="stat-card rounded-xl p-4 text-center border border-gray-700/50">
-        <div class="text-3xl font-bold text-cyan-400">{glance.get("model_count", len(data.get("models", [])))}</div>
+        <div class="stat-value text-cyan-400">{glance.get("model_count", len(data.get("models", [])))}</div>
         <div class="text-gray-400 text-xs mt-1">{t["stat_models"]}</div>
       </div>
     </div>
