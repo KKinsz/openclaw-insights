@@ -15,6 +15,8 @@
 
 </div>
 
+![Dashboard](assets/dashboard.png)
+
 ---
 
 ## Features
@@ -60,6 +62,8 @@ OpenClaw Insights auto-detects your environment and adjusts its behavior accordi
 ### Local desktop
 
 The server starts at `http://localhost:18800` and **auto-opens your browser**. On first launch, session data is analyzed automatically — no additional setup needed.
+
+![Config](assets/config.png)
 
 ### Remote server — SSH port forwarding (recommended)
 
