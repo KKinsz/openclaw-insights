@@ -4,11 +4,12 @@
 
 **[OpenClaw](https://openclaw.ai) 数据洞察与配置管理工具**
 
-可视化 Token 用量、成本、缓存效率、Cron 健康度，并在同一个本地 Web UI 中管理 OpenClaw 配置。
+完全本地运行，数据不会离开你的设备。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-3776AB.svg?logo=python&logoColor=white)](https://python.org)
 [![No Dependencies](https://img.shields.io/badge/Dependencies-None-brightgreen.svg)](#环境要求)
+[![Local Only](https://img.shields.io/badge/隐私-仅本地运行-2ea44f.svg)](#隐私)
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
@@ -77,6 +78,10 @@ python3 server.py 9000
 | `PATCH` | `/api/config/global/{section}` | 更新配置分区 |
 | `GET` | `/api/config/agent/{name}` | Agent 配置 |
 | `POST` | `/api/gateway/restart` | 重启 OpenClaw Gateway |
+
+## 隐私
+
+OpenClaw Insights 完全在本地运行。它仅读取本机 `~/.openclaw` 目录下的数据，Dashboard 仅监听 `127.0.0.1`。没有数据收集、没有遥测上报、没有任何外部网络请求。你的 session 日志、Token 用量和配置信息始终留在你的设备上，完全由你掌控。
 
 ## 开源协议
 
