@@ -1,7 +1,20 @@
+<div align="center">
+
 # OpenClaw Insights
 
-A local analytics dashboard and configuration manager for [OpenClaw](https://openclaw.ai).
-Visualize token usage, costs, caching efficiency, cron health, and manage your OpenClaw configuration — all from a single web UI.
+**Analytics dashboard & configuration manager for [OpenClaw](https://openclaw.ai)**
+
+Visualize token usage, costs, caching efficiency, cron health, and manage your OpenClaw configuration — all from a single local web UI.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9+-3776AB.svg?logo=python&logoColor=white)](https://python.org)
+[![No Dependencies](https://img.shields.io/badge/Dependencies-None-brightgreen.svg)](#requirements)
+
+[English](README.md) · [简体中文](README.zh-CN.md)
+
+</div>
+
+---
 
 ## Features
 
@@ -13,26 +26,20 @@ Visualize token usage, costs, caching efficiency, cron health, and manage your O
 
 ## Requirements
 
-- **Python 3.9+** (uses `zoneinfo` from stdlib)
+- **Python 3.9+** (stdlib only — zero third-party dependencies)
 - **OpenClaw** installed and configured at `~/.openclaw`
-- No third-party Python packages required (stdlib only)
 
 ## Quick Start
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/lukeindev/openclaw-insights.git
 cd openclaw-insights
-
-# 2. Start the server (auto-opens browser)
 python3 server.py
-
-# 3. Visit http://localhost:18800
 ```
 
-On first launch, session data is analyzed automatically. No additional setup needed.
+The server starts at `http://localhost:18800` and auto-opens your browser. On first launch, session data is analyzed automatically — no additional setup needed.
 
-### Custom Port
+**Custom port:**
 
 ```bash
 python3 server.py 9000
@@ -41,19 +48,25 @@ python3 server.py 9000
 ## How It Works
 
 ```
-~/.openclaw/agents/*/sessions/* → analyze.py → data.json → render.py → Web Dashboard
-                                                              ↕
-                                   config_api.py ← REST API ← server.py (port 18800)
-                                        ↕
-                                ~/.openclaw/openclaw.json
+~/.openclaw/agents/*/sessions/*  ──→  analyze.py  ──→  data.json
+                                                           │
+                              ┌─────────────────────────────┘
+                              ▼
+               server.py (port 18800)  ──→  render.py  ──→  Web Dashboard
+                    │
+                    ▼
+              config_api.py  ◄──►  ~/.openclaw/openclaw.json
+              (validate / backup / atomic write)
 ```
 
-1. **`analyze.py`** reads session logs from `~/.openclaw/agents/*/sessions/` and produces `data.json`
-2. **`render.py`** generates the HTML dashboard from `data.json`
-3. **`server.py`** serves the dashboard and exposes REST APIs for configuration management
-4. **`config_api.py`** handles config reads/writes with validation (via `openclaw config validate`), atomic file operations, and automatic backups
+| Module | Role |
+|--------|------|
+| **`analyze.py`** | Reads session logs from `~/.openclaw` and produces `data.json` |
+| **`render.py`** | Generates the HTML dashboard with i18n support |
+| **`server.py`** | HTTP server entry point, serves dashboard and REST APIs |
+| **`config_api.py`** | Config CRUD with `openclaw config validate`, atomic writes, and automatic backups |
 
-## API Endpoints
+## API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -65,22 +78,6 @@ python3 server.py 9000
 | `GET` | `/api/config/agent/{name}` | Agent-specific config |
 | `POST` | `/api/gateway/restart` | Restart OpenClaw gateway |
 
-## Running Tests
-
-```bash
-python3 -m unittest discover -s . -p 'test_*.py'
-```
-
-## Project Structure
-
-```
-├── server.py          # HTTP server & API routing (entry point)
-├── analyze.py         # Session data parser & analytics engine
-├── config_api.py      # Config CRUD with validation & backup
-├── render.py          # HTML dashboard renderer (i18n)
-└── test_*.py          # Unit tests
-```
-
 ## License
 
-MIT
+[MIT](LICENSE)
