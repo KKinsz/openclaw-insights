@@ -39,8 +39,6 @@ cd ~/.openclaw/insights
 python3 server.py
 ```
 
-服务启动后会自动打开浏览器访问 `http://localhost:18800`。首次启动会自动分析 session 数据，无需额外配置。
-
 **自定义 OpenClaw 路径：** 如果你的 OpenClaw 不在 `~/.openclaw`，设置环境变量即可：
 
 ```bash
@@ -52,6 +50,115 @@ OPENCLAW_HOME=/your/openclaw/path python3 server.py
 ```bash
 python3 server.py 9000
 ```
+
+---
+
+## 人类用户
+
+OpenClaw Insights 会自动检测运行环境，并给出对应的访问提示。
+
+### 本地桌面
+
+服务启动后会**自动打开浏览器**访问 `http://localhost:18800`。首次启动会自动分析 session 数据，无需额外配置。
+
+### 远程服务器 — SSH 端口转发（推荐）
+
+OpenClaw 安装在远程服务器时最安全的访问方式：
+
+```bash
+# 在本地执行
+ssh -L 18800:localhost:18800 user@your-server
+
+# 在服务器上正常启动
+python3 server.py
+# → 检测到 SSH 会话后，自动打印端口转发命令提示
+
+# 然后在本地浏览器访问
+open http://localhost:18800
+```
+
+### 远程服务器 — 绑定外部 IP
+
+适用于 VPN 或内网等不方便使用 SSH 隧道的场景：
+
+```bash
+python3 server.py --host 0.0.0.0
+```
+
+> **安全警告：** 此操作会将 Dashboard（含配置写入权限）暴露到网络。请仅在防火墙保护或可信内网环境下使用。
+
+---
+
+## AI Agent 用户
+
+当 AI Agent 自动安装并运行本工具时，有以下两种交互方式。
+
+### 1. 启动服务并检测就绪状态
+
+```bash
+python3 server.py
+```
+
+服务启动后，会在 stdout 最先输出一行机器可解析的就绪信号：
+
+```
+READY http://localhost:18800
+```
+
+Agent 监听 stdout 中的 `READY <url>` 行，即可确认服务已就绪，并将 URL 转告给用户。
+
+### 2. 一次性摘要模式（无需启动服务器或浏览器）
+
+```bash
+# 人类可读格式 — 直接转述给用户
+python3 server.py --summary
+```
+
+示例输出：
+
+```
+=== OpenClaw Insights ===
+Sessions:       66  (活跃天数: 16)
+Token 消耗:     106,354,923  (日均: 6,647,183)
+活跃 Agent:     5 个
+Skill 数量:     22
+Cron 数量:      4  (成功率: 56.2%)
+模型数量:       7
+```
+
+```bash
+# JSON 格式 — 程序化解析
+python3 server.py --json
+```
+
+示例输出（字段与网页 Dashboard 完全对应）：
+
+```json
+{
+  "total_sessions": 66,
+  "active_agents": 5,
+  "total_tokens": 106354923,
+  "daily_avg_tokens": 6647183,
+  "skills_count": 22,
+  "cron_job_count": 4,
+  "model_count": 7,
+  "active_days": 16,
+  "cron_success_rate_pct": 56.2
+}
+```
+
+两种模式均为一次性运行，输出后自动退出。
+
+### 退出码
+
+| 退出码 | 含义 |
+|--------|------|
+| `0` | 正常退出 |
+| `1` | 数据不存在，OpenClaw 可能未安装 |
+| `2` | 端口已被占用 |
+| `3` | 数据分析失败（数据损坏等） |
+
+---
 
 ## 工作原理
 

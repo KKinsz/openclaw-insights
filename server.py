@@ -13,8 +13,28 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import traceback
 
+
+def detect_environment() -> str:
+    """检测当前运行环境。
+
+    返回值:
+        "ssh"      — SSH 远程会话（优先级最高）
+        "desktop"  — 本地桌面环境（macOS 或有图形界面的 Linux）
+        "headless" — 无图形界面的纯终端环境
+    """
+    # SSH 会话优先：存在 SSH_CLIENT 或 SSH_TTY 环境变量
+    if os.environ.get("SSH_CLIENT") or os.environ.get("SSH_TTY"):
+        return "ssh"
+    # macOS 本地终端
+    if sys.platform == "darwin":
+        return "desktop"
+    # Linux 有图形界面
+    if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
+        return "desktop"
+    return "headless"
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 18800
+DEFAULT_PORT = 18800
 
 # 懒加载 config_api，确保路径正确
 sys.path.insert(0, SCRIPT_DIR)
@@ -24,6 +44,47 @@ import render as render_module
 
 # 缓存 data.json 内容，避免每次请求都读磁盘
 _cached_data = None
+
+
+def build_summary_dict(data: dict) -> dict:
+    """从 data.json 提取关键指标，与网页 Dashboard 展示内容保持一致。"""
+    g = data.get("at_a_glance", {})
+    cron = data.get("cron", {})
+    active_agents = g.get("active_agent_count")
+    if active_agents is None:
+        active_agents = len(g.get("active_agents", []))
+    model_count = g.get("model_count", len(data.get("models", [])))
+    skills_count = g.get("skills_count", data.get("skills", {}).get("total", 0))
+    cron_job_count = g.get("cron_job_count", cron.get("total_jobs", 0))
+    success_rate = cron.get("overall_success_rate")
+    cron_success_rate_pct = round(success_rate * 100, 1) if success_rate is not None else None
+    return {
+        "total_sessions": g.get("total_sessions", 0),
+        "active_agents": active_agents,
+        "total_tokens": g.get("total_tokens", 0),
+        "daily_avg_tokens": g.get("daily_avg_tokens", 0),
+        "skills_count": skills_count,
+        "cron_job_count": cron_job_count,
+        "model_count": model_count,
+        "active_days": g.get("active_days", 0),
+        "cron_success_rate_pct": cron_success_rate_pct,
+    }
+
+
+def build_summary_text(data: dict) -> str:
+    """生成人类可读的摘要文本（--summary 模式）。"""
+    s = build_summary_dict(data)
+    cron_rate = f"{s['cron_success_rate_pct']}%" if s["cron_success_rate_pct"] is not None else "N/A"
+    lines = [
+        "=== OpenClaw Insights ===",
+        f"Sessions:       {s['total_sessions']}  (活跃天数: {s['active_days']})",
+        f"Token 消耗:     {s['total_tokens']:,}  (日均: {s['daily_avg_tokens']:,})",
+        f"活跃 Agent:     {s['active_agents']} 个",
+        f"Skill 数量:     {s['skills_count']}",
+        f"Cron 数量:      {s['cron_job_count']}  (成功率: {cron_rate})",
+        f"模型数量:       {s['model_count']}",
+    ]
+    return "\n".join(lines)
 
 
 def _load_data():
@@ -264,30 +325,106 @@ class Handler(BaseHTTPRequestHandler):
             json_response(self, {"error": "not found"}, 404)
 
 
-def main():
+def _print_startup_message(url: str, env: str, port: int):
+    """根据运行环境输出启动信息，并在 Agent 可解析的固定行输出 READY 信号。"""
+    print("OpenClaw Insights 已启动")
+    # READY 行：固定格式，Agent 可 grep 此行获取服务地址
+    print(f"READY {url}")
+
+    if env == "desktop":
+        print("按 Ctrl+C 停止")
+        try:
+            import webbrowser
+            webbrowser.open(url)
+        except Exception:
+            pass
+    elif env == "ssh":
+        print()
+        print("检测到 SSH 会话，无法自动打开浏览器。")
+        print("在本地执行以下命令进行端口转发，然后用浏览器访问：")
+        print(f"  ssh -L {port}:localhost:{port} $SSH_CONNECTION_HOST")
+        print(f"  open {url}")
+    else:  # headless
+        print()
+        print("检测到无图形界面环境。访问方式：")
+        print(f"  SSH 端口转发: ssh -L {port}:localhost:{port} <用户名@服务器IP>")
+        print(f"  或绑定外部IP: python3 server.py --host 0.0.0.0（需配合防火墙使用）")
+    print()
+
+
+def _parse_args(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(
+        prog="server.py",
+        description="OpenClaw Insights — 本地数据洞察与配置管理服务",
+    )
+    parser.add_argument("port", nargs="?", type=int, default=DEFAULT_PORT,
+                        help=f"监听端口（默认 {DEFAULT_PORT}）")
+    parser.add_argument("--host", default="127.0.0.1",
+                        help="绑定地址（默认 127.0.0.1；使用 0.0.0.0 可对外暴露，需配合防火墙）")
+    parser.add_argument("--summary", action="store_true",
+                        help="输出人类可读的摘要报告后退出（不启动服务）")
+    parser.add_argument("--json", dest="json_out", action="store_true",
+                        help="输出 JSON 格式摘要后退出（不启动服务，适合 Agent 解析）")
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    opts = _parse_args(argv)
+
+    # --summary / --json 一次性输出模式
+    if opts.summary or opts.json_out:
+        data_path = os.path.join(SCRIPT_DIR, "data.json")
+        if not os.path.exists(data_path):
+            print("错误: data.json 不存在，请先运行 analyze.py 或正常启动服务", file=sys.stderr)
+            sys.exit(1)
+        with open(data_path, encoding="utf-8") as f:
+            data = json.load(f)
+        if opts.json_out:
+            print(json.dumps(build_summary_dict(data), ensure_ascii=False, indent=2))
+        else:
+            print(build_summary_text(data))
+        return
+
+    # 正常服务器模式
+    host = opts.host
+    port = opts.port
+
+    if host != "127.0.0.1":
+        print("⚠ 安全警告：服务绑定到非本地地址，请确保已配置防火墙或仅在可信网络中使用。")
+
     # 首次启动时生成数据
     data_path = os.path.join(SCRIPT_DIR, "data.json")
     if not os.path.exists(data_path):
         print("首次启动，正在生成数据...")
-        analyze.main()
-    _load_data()
-
-    server = HTTPServer(("127.0.0.1", PORT), Handler)
-    url = f"http://localhost:{PORT}"
-    print(f"OpenClaw Insights Server 启动")
-    print(f"访问地址: {url}")
-    print(f"按 Ctrl+C 停止")
-    print()
-
-    # 自动打开浏览器（跨平台）
+        try:
+            analyze.main()
+        except Exception as e:
+            print(f"ERROR: 数据分析失败: {e}", file=sys.stderr)
+            sys.exit(3)
     try:
-        import webbrowser
-        webbrowser.open(url)
-    except Exception:
-        pass
+        _load_data()
+    except Exception as e:
+        print(f"ERROR: 无法读取数据，请检查 OpenClaw 是否已安装: {e}", file=sys.stderr)
+        sys.exit(1)
 
     try:
-        server.serve_forever()
+        srv = HTTPServer((host, port), Handler)
+    except OSError as e:
+        import errno
+        if e.errno == errno.EADDRINUSE:
+            print(f"ERROR: 端口 {port} 已被占用，请指定其他端口: python3 server.py {port + 1}", file=sys.stderr)
+            sys.exit(2)
+        raise
+
+    display_host = "localhost" if host == "127.0.0.1" else host
+    url = f"http://{display_host}:{port}"
+
+    env = detect_environment()
+    _print_startup_message(url, env, port)
+
+    try:
+        srv.serve_forever()
     except KeyboardInterrupt:
         print("\n已停止")
 
